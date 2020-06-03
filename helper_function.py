@@ -136,7 +136,7 @@ def train_test_intersubjects(data_dic, dic_result, model, key_result, data_type=
             X_test = data_test[data_type]
             y_test = data_test['labels']      
             yest_test = model.predict(X_test)
-            score = hf.accuracy(yest_test, y_test)
+            score = accuracy(yest_test, y_test)
             print(train_key, test_key, score)
             dic_result[key_result].setdefault('acc', []).append(score)
             dic_result[key_result].setdefault('model', []).append(model)
