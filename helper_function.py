@@ -119,3 +119,26 @@ def train_test_intersession(dic_data, dic_result, model, key_result, data_type='
         print(train_key, test_key, score)
     print('avg: {}'.format(np.mean(score_list)))
     return dic_result
+
+
+def train_test_intersubjects(data_dic, dic_result, model, key_result, data_type='cov'):
+    dic_result[key_result] = {}#{'acc': [], 't': {}, 'model': {}}
+    keys = list(data_dic.keys())
+    for train_key in keys:
+        data_train = data_dic[train_key]
+        X_train = data_train[data_type]
+        y_train = data_train['labels']
+        model.fit(X_train, y_train)            
+        subject = train_key[:2]
+        test_keys = [key for key in keys if subject not in key]
+        for test_key in test_keys:
+            data_test = data_dic[test_key]
+            X_test = data_test[data_type]
+            y_test = data_test['labels']      
+            yest_test = model.predict(X_test)
+            score = hf.accuracy(yest_test, y_test)
+            print(train_key, test_key, score)
+            dic_result[key_result].setdefault('acc', []).append(score)
+            dic_result[key_result].setdefault('model', []).append(model)
+    print('avg: {}'.format(np.mean(dic_result[key_result]['acc'])))
+    return dic_result
