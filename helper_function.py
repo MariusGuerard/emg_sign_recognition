@@ -4,7 +4,10 @@ import numpy as np
 
 
 class ClosestMean():
-
+    """Classifier based on Minimum Distance to Mean (MDM)
+    Note: For now just the MDM on euclidean geometry is implemanted 
+    (MDM on riemann is already implemented on other libraries as pyriemann)
+    """
     def __init__(self, geometry='euclid'):
         self.mean_dic = dict()
         self.result_dic = dict()
@@ -17,7 +20,6 @@ class ClosestMean():
         self.labels = list(set(y_train))
         for label in self.labels:
             idx_label = np.where(y_train==label)[0]
-            #cov_mean_label = np.mean(cov_train[idx_label], axis=0)
             cov_mean_label = self.mean_func(cov_train[idx_label])
             self.mean_dic[label] = cov_mean_label
             
@@ -28,8 +30,7 @@ class ClosestMean():
             yest_test.append(np.argmin(dist_to_means))
         return yest_test
 
-    # To make it scikit-learn compatible.
-
+    # Methods to make the class 'scikit-learn compatible'.
     def get_params(self, deep=True):
         return {'geometry': self.geometry}
     
@@ -48,12 +49,14 @@ def vectorize_cov(cov_mat):
             covec.append(cov_mat[i][j])
     return covec
     
+    
 def accuracy(yest, y):
     """Accuracy computed between estimated class and true class vectors.
     """
     yest = np.array(yest)
     y = np.array(y)
     return (yest == y).sum() / len(y)
+
 
 def evaluate_on_kfold(model, X, y, kfold):
     """From a StratifiedKFold object, fit and test the model and return the accuracy results.
@@ -71,7 +74,11 @@ def evaluate_on_kfold(model, X, y, kfold):
         acc.append(accuracy(yest_test, y_test))
     return acc
     
+    
 def record_results_kfold(dic_data, dic_result, model, kfold, key_result, key_data='var'):
+    """Pipeline for the intra-session experiments. For each sessions, fit the model on one fold and
+    validate on other folds and store the results in 'dic_result'.
+    """
     dic_result[key_result] = {}
     dic_result[key_result]['acc'] = {}
     dic_result[key_result]['t'] = {}
@@ -92,7 +99,11 @@ def record_results_kfold(dic_data, dic_result, model, kfold, key_result, key_dat
     dic_result[key_result]['t_all'] = np.array([x for _, x in dic_result[key_result]['t'].items()]).flatten()
     return dic_result
 
+
 def train_test_intersession(dic_data, dic_result, model, key_result, data_type='cov'):
+    """Pipeline for the inter-session experiments. For each session couple, fit the model on one session and
+    validate it on another session before storing the results in 'dic_result'.
+    """
     dic_result[key_result] = {'acc': {}, 't': {}, 'model': {}}
     score_list = []
     for train_key, data in dic_data.items():
@@ -122,6 +133,9 @@ def train_test_intersession(dic_data, dic_result, model, key_result, data_type='
 
 
 def train_test_intersubjects(data_dic, dic_result, model, key_result, data_type='cov'):
+    """Pipeline for the inter-subject experiments. For each session couple that are drawn from different users, 
+    fit the model on one session and validate it on another session. Then store the results in 'dic_result'.
+    """
     dic_result[key_result] = {}#{'acc': [], 't': {}, 'model': {}}
     keys = list(data_dic.keys())
     for train_key in keys:

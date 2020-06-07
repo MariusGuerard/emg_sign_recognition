@@ -21,7 +21,7 @@ def bar_plot_scatter_comp(list_vec, x_labels, title, legend, save_name=None, sta
     N_serie = len(list_vec)
     label_loc = np.arange(len(x_labels))  # the label locations
     w = 0.5  # the width of the bars
-    colors = ['b', 'r']
+    colors = ['b', 'r', 'gray']
     center_bar = [w * (i - 0.5) for i in range(N_serie)]
 
     ### Plots values.
@@ -29,9 +29,6 @@ def bar_plot_scatter_comp(list_vec, x_labels, title, legend, save_name=None, sta
     std_conc = [np.nanstd(conc, axis=0) for conc in list_vec]
         
     ### Plotting the data.
-    # if figure is None:
-    #     fig = plt.figure(figsize=(15,10))
-    # ax = plt.gca()
     fig, ax = plt.subplots(figsize=(20, 15))
     
     for i, conc in enumerate(list_vec):
@@ -43,11 +40,9 @@ def bar_plot_scatter_comp(list_vec, x_labels, title, legend, save_name=None, sta
             ax.scatter((x + center_bar[i]) + rand_m1(conc[:, j].size) * w/4,
                        conc[:, j], color=colors[i], edgecolor='k')
 
-    ### Plot description.
-    # Stats if provided.
+    ### Plot Stats significance if provided.
     if stats_list is not None:
         for i, loc in enumerate(label_loc):
-            # plt.plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
             if stats_list[i] < 0.05:
                 y = max(std_conc[0][i] + avg_conc[0][i], std_conc[1][i] + avg_conc[1][i]) + 4
                 plt.text(loc, y, "*", ha="center", va="bottom", fontsize=30)     
