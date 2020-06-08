@@ -3,12 +3,15 @@ import time
 import numpy as np
 
 
-class ClosestMean():
+class MDM():
     """Classifier based on Minimum Distance to Mean (MDM)
     Note: For now just the MDM on euclidean geometry is implemanted 
     (MDM on riemann is already implemented on other libraries as pyriemann)
     """
     def __init__(self, geometry='euclid'):
+        """Initiate an instance of the class on the specified geometry.
+        the choice of the geometry impacts the computation of the mean and of the norm.
+        """
         self.mean_dic = dict()
         self.result_dic = dict()
         if geometry == 'euclid':
@@ -16,17 +19,31 @@ class ClosestMean():
             self.norm_func = lambda M1, M2: ((M1 - M2)**2).sum()
         self.geometry = geometry
 
-    def fit(self, cov_train, y_train):
+    def fit(self, X_train, y_train):
+        """Compute the mean of all the samples corresponding to each class.
+        
+        Args:
+            X_train (np.array): Training samples with dimension N_samples x N_features.
+            y_train (np.array): Training labels with dimension N_samples.
+        """
         self.labels = list(set(y_train))
         for label in self.labels:
             idx_label = np.where(y_train==label)[0]
-            cov_mean_label = self.mean_func(cov_train[idx_label])
+            cov_mean_label = self.mean_func(X_train[idx_label])
             self.mean_dic[label] = cov_mean_label
             
-    def predict(self, cov_test):
+    def predict(self, X_test):
+        """Return the labels that corresponds to the closest mean to each sample.
+        
+        Args:
+            X_test (np.array): Testing sample with dimension N_samples x N_features
+            
+        Returns:
+            yest_test (np.array): Estimation of the test label with dimension N_samples.
+        """
         yest_test = []
-        for cov_sample in cov_test:
-            dist_to_means = [self.norm_func(cov_sample, self.mean_dic[label]) for label in self.labels]
+        for X_sample in X_test:
+            dist_to_means = [self.norm_func(X_sample, self.mean_dic[label]) for label in self.labels]
             yest_test.append(np.argmin(dist_to_means))
         return yest_test
 
@@ -34,13 +51,21 @@ class ClosestMean():
     def get_params(self, deep=True):
         return {'geometry': self.geometry}
     
-    def score(self, cov_test, y_test):
-        yest_test = self.predict(cov_test)
+    def score(self, X_test, y_test):
+        yest_test = self.predict(X_test)
         return accuracy(y_test, yest_test)
     
     
 def vectorize_cov(cov_mat):
-    """Transform a covariance matrix into an n(n+1)/2 elements vector.
+    """Transform a covariance matrix into an N(N+1)/2 elements vector. 
+    As covariance matrix are symmetric, all the information is contained in this vector.
+    
+    Args:
+        cov_mat (np.array): Square matrix of dimension N x N
+        
+    Returns:
+        covec (np.array): Vector containing the elements on the bottom left of the diagonal(included). 
+        Dimension N(N+1)/2
     """
     lcov = len(cov_mat)
     covec = []
@@ -52,6 +77,10 @@ def vectorize_cov(cov_mat):
     
 def accuracy(yest, y):
     """Accuracy computed between estimated class and true class vectors.
+    
+    Args:
+        yest (np.array): estimated labels vector
+        y (np.array): true labels vector.
     """
     yest = np.array(yest)
     y = np.array(y)
@@ -60,8 +89,17 @@ def accuracy(yest, y):
 
 def evaluate_on_kfold(model, X, y, kfold):
     """From a StratifiedKFold object, fit and test the model and return the accuracy results.
-    Allow to compare different model on the same split and works with all models that have a 'fit' 
+    Allow to compare different models on the same split and works with all models that have a 'fit' 
     and 'predict' method.
+    
+    Args:
+        model (Obj): any instance of a class with predict and append methods.
+        X (np.array): Input matrix of dim N_samples x N_features.
+        y (np.array): Output labels of dimension N_samples.
+        kfold (Obj): any instance of a class with a split method (taking X, and y as argument).
+        
+    Returns:
+        acc ([float]): accuracy measured on every split of the kfold.
     """
     acc = []
     for train_indices, test_indices in kfold.split(X, y):
@@ -78,6 +116,17 @@ def evaluate_on_kfold(model, X, y, kfold):
 def record_results_kfold(dic_data, dic_result, model, kfold, key_result, key_data='var'):
     """Pipeline for the intra-session experiments. For each sessions, fit the model on one fold and
     validate on other folds and store the results in 'dic_result'.
+    
+    Args:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
+        dic_result (dict): contains the accuracy, time of execution and trained model for each experiment.
+        model (Obj): model to test.
+        kfold (Obj): kfold to test the model on.
+        key_result (str): key to use for storing in dic_result (refers to the model name)
+        key_data (str): key to select the shape of the input data (covariance, variance,...)
+        
+    Returns:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
     """
     dic_result[key_result] = {}
     dic_result[key_result]['acc'] = {}
@@ -103,6 +152,16 @@ def record_results_kfold(dic_data, dic_result, model, kfold, key_result, key_dat
 def train_test_intersession(dic_data, dic_result, model, key_result, data_type='cov'):
     """Pipeline for the inter-session experiments. For each session couple, fit the model on one session and
     validate it on another session before storing the results in 'dic_result'.
+        
+    Args:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
+        dic_result (dict): contains the accuracy, time of execution and trained model for each experiment.
+        model (Obj): model to test.
+        key_result (str): key to use for storing in dic_result (refers to the model name)
+        data_type (str): key to select the shape of the input data (covariance, variance,...)
+        
+    Returns:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
     """
     dic_result[key_result] = {'acc': {}, 't': {}, 'model': {}}
     score_list = []
@@ -135,6 +194,16 @@ def train_test_intersession(dic_data, dic_result, model, key_result, data_type='
 def train_test_intersubjects(data_dic, dic_result, model, key_result, data_type='cov'):
     """Pipeline for the inter-subject experiments. For each session couple that are drawn from different users, 
     fit the model on one session and validate it on another session. Then store the results in 'dic_result'.
+    
+     Args:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
+        dic_result (dict): contains the accuracy, time of execution and trained model for each experiment.
+        model (Obj): model to test.
+        key_result (str): key to use for storing in dic_result (refers to the model name)
+        data_type (str): key to select the shape of the input data (covariance, variance,...)
+        
+    Returns:
+        dic_data (dict): contains the data in different shape (raw, covariance, variance,...)
     """
     dic_result[key_result] = {}#{'acc': [], 't': {}, 'model': {}}
     keys = list(data_dic.keys())

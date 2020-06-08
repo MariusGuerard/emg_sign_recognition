@@ -11,8 +11,7 @@ def bar_plot_scatter_comp(list_vec, x_labels, title, legend, save_name=None, sta
         - title (str): Title of the plot.
         - legend ([str]): one string per vector of list_vec.
         - save_name (str): Save the figure if a path is provided.
-        - stats_list ([float]): One p-value for each time point corresponding 
-        to the prob. of H0: "<list_vec[0]> = <list_vec[1]>".
+        - stats_list ([bool]): if stats_list[i]=True, it means we rejected H0: "<vec_A[:, i]> = <vec_B[:, i]>".
     """
     ### Function to return a vector (of length 'size') made of random number between -1 and 1.
     rand_m1 = lambda size: np.random.random(size) * 2 - 1
@@ -43,7 +42,7 @@ def bar_plot_scatter_comp(list_vec, x_labels, title, legend, save_name=None, sta
     ### Plot Stats significance if provided.
     if stats_list is not None:
         for i, loc in enumerate(label_loc):
-            if stats_list[i] < 0.05:
+            if stats_list[i]:
                 y = max(std_conc[0][i] + avg_conc[0][i], std_conc[1][i] + avg_conc[1][i]) + 4
                 plt.text(loc, y, "*", ha="center", va="bottom", fontsize=30)     
     
